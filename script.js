@@ -1,32 +1,5 @@
-/* ============================================================
-   SIMKOS — script.js
-   Sistem Informasi Manajemen Kos-kosan (admin / pengelola)
-   Semua data disimpan di localStorage. Tidak ada backend.
-
-   Urutan isi file:
-   1.  Konstanta & utilitas
-   2.  Penyimpanan data (localStorage)
-   3.  Data demo (dummy)
-   4.  Logika bisnis (status kamar, status pembayaran)
-   5.  Komponen UI (toast, modal, konfirmasi, paginasi)
-   6.  Login & logout
-   7.  Router halaman
-   8.  Halaman Dashboard
-   9.  Halaman Data Kamar
-   10. Halaman Data Penghuni
-   11. Halaman Pembayaran
-   12. Halaman Laporan
-   13. Halaman Riwayat Penghuni
-   14. Halaman Pengaturan
-   15. Event global & inisialisasi
-   ============================================================ */
 'use strict';
 
-/* ============================================================
-   1. KONSTANTA & UTILITAS
-   ============================================================ */
-
-// Nama kunci penyimpanan di localStorage
 const LS = {
   rooms:    'simkos_rooms',
   tenants:  'simkos_tenants',
@@ -35,10 +8,8 @@ const LS = {
   session:  'simkos_session'
 };
 
-// Seluruh data aplikasi ditampung di sini setelah dibaca dari localStorage
 const DB = { rooms: [], tenants: [], payments: [], settings: {} };
 
-// Status pencarian / filter / halaman aktif tiap menu
 const ui = {
   page: 'dashboard',
   kamar:     { q: '', status: 'all' },
@@ -48,7 +19,7 @@ const ui = {
   riwayat:   { q: '' }
 };
 
-const PER_PAGE = 8; // jumlah baris per halaman tabel
+const PER_PAGE = 8;
 
 const BULAN = ['Januari','Februari','Maret','April','Mei','Juni',
                'Juli','Agustus','September','Oktober','November','Desember'];
@@ -57,53 +28,44 @@ const BULAN_SINGKAT = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Ok
 const $  = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.prototype.slice.call(root.querySelectorAll(sel));
 
-/** Format angka menjadi rupiah, contoh: 700000 -> "Rp700.000" */
 function rupiah(n) {
   return 'Rp' + Math.round(Number(n) || 0).toLocaleString('id-ID');
 }
 
-/** Tambahkan nol di depan angka satu digit: 5 -> "05" */
 function pad2(n) { return String(n).padStart(2, '0'); }
 
-/** Tanggal hari ini dalam format YYYY-MM-DD */
 function todayISO() {
   const d = new Date();
   return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
 }
 
-/** Kunci bulan (YYYY-MM) dari objek Date */
 function monthKeyOf(date) {
   return date.getFullYear() + '-' + pad2(date.getMonth() + 1);
 }
 
-/** Geser kunci bulan: addMonths('2026-09', -2) -> '2026-07' */
 function addMonths(key, diff) {
   const parts = key.split('-');
   const d = new Date(Number(parts[0]), Number(parts[1]) - 1 + diff, 1);
   return monthKeyOf(d);
 }
 
-/** '2026-09' -> 'September 2026' */
 function labelBulan(key) {
   if (!key) return '-';
   const p = key.split('-');
   return BULAN[Number(p[1]) - 1] + ' ' + p[0];
 }
 
-/** '2026-09' -> 'Sep 2026' */
 function labelBulanSingkat(key) {
   const p = key.split('-');
   return BULAN_SINGKAT[Number(p[1]) - 1] + ' ' + p[0];
 }
 
-/** '2026-09-05' -> '5 Sep 2026' */
 function labelTanggal(iso) {
   if (!iso) return '-';
   const p = iso.split('-');
   return Number(p[2]) + ' ' + BULAN_SINGKAT[Number(p[1]) - 1] + ' ' + p[0];
 }
 
-/** Tanggal jatuh tempo untuk sebuah bulan, hari dibatasi jumlah hari bulan itu */
 function tanggalJatuhTempo(monthKey, hari) {
   const p = monthKey.split('-');
   const tahun = Number(p[0]);
@@ -113,26 +75,22 @@ function tanggalJatuhTempo(monthKey, hari) {
   return monthKey + '-' + pad2(d);
 }
 
-/** Selisih hari antara dua tanggal ISO (b - a) */
 function selisihHari(aISO, bISO) {
   const a = new Date(aISO + 'T00:00:00');
   const b = new Date(bISO + 'T00:00:00');
   return Math.round((b - a) / 86400000);
 }
 
-/** Cegah HTML berbahaya saat data pengguna dimasukkan ke template literal */
 function escapeHtml(value) {
   return String(value === undefined || value === null ? '' : value)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-/** ID unik sederhana, contoh: "KMR-3F2A9" */
 function uid(prefix) {
   return prefix + '-' + Math.random().toString(36).slice(2, 7).toUpperCase();
 }
 
-/** Ubah teks status menjadi nama kelas badge */
 function badgeClass(status) {
   const map = {
     'Terisi': 'terisi', 'Kosong': 'kosong', 'Maintenance': 'maintenance',
@@ -145,10 +103,6 @@ function badgeClass(status) {
 function badge(status) {
   return '<span class="badge badge--' + badgeClass(status) + '">' + escapeHtml(status) + '</span>';
 }
-
-/* ============================================================
-   2. PENYIMPANAN DATA (localStorage)
-   ============================================================ */
 
 function simpanSemua() {
   localStorage.setItem(LS.rooms, JSON.stringify(DB.rooms));
@@ -167,7 +121,6 @@ function bacaJSON(key) {
   }
 }
 
-/** Baca data dari localStorage. Jika belum ada, isi dengan data demo. */
 function muatData() {
   const rooms = bacaJSON(LS.rooms);
   const tenants = bacaJSON(LS.tenants);
@@ -187,10 +140,6 @@ function muatData() {
   sinkronStatusKamar();
 }
 
-/* ============================================================
-   3. DATA DEMO (DUMMY)
-   ============================================================ */
-
 function isiDataDemo() {
   const bulanIni = monthKeyOf(new Date());
   const hariJatuhTempo = 5;
@@ -204,7 +153,6 @@ function isiDataDemo() {
     password: 'admin123'
   };
 
-  /* ---- Kamar (15 kamar, 3 tipe) ---- */
   const tipe = {
     Standar: { harga: 700000,  fasilitas: ['Kasur', 'Lemari', 'Meja', 'Kamar mandi luar'] },
     Deluxe:  { harga: 950000,  fasilitas: ['Kasur', 'Lemari', 'AC', 'Kamar mandi dalam'] },
@@ -226,14 +174,13 @@ function isiDataDemo() {
       status: 'Kosong'
     };
   });
-  // Satu kamar sedang diperbaiki
+ 
   DB.rooms[5].status = 'Maintenance'; // kamar A6
 
   const cariKamar = function (nomor) {
     return DB.rooms.filter(function (r) { return r.nomor === nomor; })[0];
   };
 
-  /* ---- Penghuni aktif (10 orang) ---- */
   const aktif = [
     ['Rani Puspita',      '081234567801', 'Perempuan', 'A1', -14, 'Jl. Mawar No. 3, Bekasi'],
     ['Dimas Prakoso',     '081234567802', 'Laki-laki', 'A2', -11, 'Jl. Anggrek No. 12, Cikarang'],
@@ -247,7 +194,6 @@ function isiDataDemo() {
     ['Yoga Pratama',      '081234567810', 'Laki-laki', 'C4',  -1, 'Jl. Sudirman No. 88, Bandung']
   ];
 
-  /* ---- Penghuni yang sudah keluar (5 orang) ---- */
   const keluar = [
     ['Andi Kurniawan',   '081298765401', 'Laki-laki', 'A5', -12, -1, 'Jl. Gatot Subroto No. 4, Bekasi'],
     ['Melati Safitri',   '081298765402', 'Perempuan', 'B4', -10, -2, 'Jl. Teratai No. 16, Cibitung'],
@@ -286,9 +232,7 @@ function isiDataDemo() {
     });
   });
 
-  /* ---- Pembayaran ----
-     Dibuat untuk 6 bulan terakhir + 1 bulan ke depan agar dashboard,
-     grafik, notifikasi, dan laporan langsung terisi. */
+   
   DB.payments = [];
   let urut = 1;
 
@@ -312,11 +256,7 @@ function isiDataDemo() {
   const bulanDepan = addMonths(bulanIni, 1);
   const bulanLalu = addMonths(bulanIni, -1);
 
-  // Pola pembayaran bulan berjalan untuk 10 penghuni aktif
-  // 'penuh' = lunas, angka = dibayar sebagian, 0 = belum bayar
   const polaBulanIni = ['penuh', 'penuh', 'penuh', 500000, 0, 0, 'penuh', 600000, 'penuh', 0];
-  // Pola tagihan bulan depan (belum jatuh tempo) -> memunculkan status
-  // "Belum Bayar" dan "Sebagian" di dashboard serta daftar pembayaran
   const polaBulanDepan = ['penuh', 0, 0, 500000, 0, 0, 0, 600000, 0, 0];
 
   DB.tenants.filter(function (t) { return t.status === 'Aktif'; }).forEach(function (t, i) {
@@ -331,19 +271,16 @@ function isiDataDemo() {
         const tgl = bayar === 0 ? '' : m + '-' + pad2(2 + (i % 4));
         buatTagihan(t, m, bayar, tgl);
       } else if (m === bulanLalu && (i === 4 || i === 5)) {
-        // Dua penghuni menunggak bulan lalu -> muncul sebagai "Terlambat"
         buatTagihan(t, m, 0, '');
       } else {
         buatTagihan(t, m, 'penuh', m + '-' + pad2(2 + (i % 4)));
       }
     });
 
-    // Tagihan bulan depan sudah diterbitkan (belum jatuh tempo)
     const polaDepan = polaBulanDepan[i];
     buatTagihan(t, bulanDepan, polaDepan, polaDepan === 0 ? '' : todayISO());
   });
 
-  // Pembayaran penghuni yang sudah keluar (semuanya lunas)
   DB.tenants.filter(function (t) { return t.status === 'Tidak Aktif'; }).forEach(function (t, i) {
     const masukBulan = t.tglMasuk.slice(0, 7);
     const keluarBulan = t.tglKeluar.slice(0, 7);
@@ -356,11 +293,6 @@ function isiDataDemo() {
   sinkronStatusKamar();
 }
 
-/* ============================================================
-   4. LOGIKA BISNIS
-   ============================================================ */
-
-/** Status kamar selalu mengikuti data penghuni aktif. */
 function sinkronStatusKamar() {
   DB.rooms.forEach(function (room) {
     const adaPenghuni = DB.tenants.some(function (t) {
@@ -384,7 +316,6 @@ function namaPenghuni(id) {
   return t ? t.nama : '(penghuni dihapus)';
 }
 
-/** Penghuni aktif pada sebuah kamar (null bila kosong) */
 function penghuniKamar(roomId) {
   return DB.tenants.filter(function (t) {
     return t.status === 'Aktif' && t.roomId === roomId;
@@ -395,30 +326,18 @@ function sisaTagihan(p) {
   return Math.max(0, Number(p.tagihan) - Number(p.dibayar));
 }
 
-/**
- * Status pembayaran dihitung otomatis:
- * - Lunas       : jumlah dibayar >= tagihan
- * - Terlambat   : belum lunas dan hari ini sudah melewati jatuh tempo
- * - Sebagian    : sudah dibayar sebagian, belum jatuh tempo
- * - Belum Bayar : belum dibayar sama sekali, belum jatuh tempo
- */
 function statusBayar(p) {
   if (Number(p.dibayar) >= Number(p.tagihan)) return 'Lunas';
   if (todayISO() > p.jatuhTempo) return 'Terlambat';
   return Number(p.dibayar) > 0 ? 'Sebagian' : 'Belum Bayar';
 }
 
-/** Keterangan jatuh tempo untuk notifikasi dashboard */
 function infoJatuhTempo(p) {
   const hari = selisihHari(todayISO(), p.jatuhTempo);
   if (hari > 0) return 'Akan jatuh tempo ' + hari + ' hari lagi';
   if (hari === 0) return 'Jatuh tempo hari ini';
   return 'Terlambat ' + Math.abs(hari) + ' hari';
 }
-
-/* ============================================================
-   5. KOMPONEN UI
-   ============================================================ */
 
 const IKON = {
   ok:    '<svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5"/></svg>',
@@ -430,7 +349,6 @@ const IKON = {
   print: '<svg viewBox="0 0 24 24"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 15h12v6H6z"/></svg>'
 };
 
-/** Notifikasi kecil di pojok kanan bawah */
 function toast(pesan, tipe) {
   const root = $('#toastRoot');
   const el = document.createElement('div');
@@ -444,10 +362,6 @@ function toast(pesan, tipe) {
 
 function tutupModal() { $('#modalRoot').innerHTML = ''; }
 
-/**
- * Menampilkan modal. Mengembalikan elemen modal agar bisa dipasangi event.
- * opsi: { judul, sub, isi, footer, lebar }
- */
 function bukaModal(opsi) {
   const lebar = opsi.lebar ? ' modal__box--' + opsi.lebar : '';
   $('#modalRoot').innerHTML = `
@@ -476,7 +390,6 @@ function bukaModal(opsi) {
   return overlay;
 }
 
-/** Dialog konfirmasi. Dipakai sebelum menghapus data. */
 function konfirmasi(opsi) {
   return new Promise(function (resolve) {
     const overlay = bukaModal({
@@ -496,7 +409,6 @@ function konfirmasi(opsi) {
   });
 }
 
-/** HTML kontrol paginasi. grup dipakai saat tombol diklik. */
 function htmlPager(grup, totalData, halaman) {
   const totalHal = Math.max(1, Math.ceil(totalData / PER_PAGE));
   if (totalData === 0) return '';
@@ -524,9 +436,6 @@ function htmlKosong(judul, pesan) {
   return `<div class="empty"><strong>${escapeHtml(judul)}</strong>${escapeHtml(pesan)}</div>`;
 }
 
-/* ============================================================
-   6. LOGIN & LOGOUT
-   ============================================================ */
 
 function sedangLogin() {
   return localStorage.getItem(LS.session) === 'aktif' || sessionStorage.getItem(LS.session) === 'aktif';
@@ -583,9 +492,6 @@ function tampilkanAplikasi() {
   navigasi(ui.page);
 }
 
-/* ============================================================
-   7. ROUTER HALAMAN
-   ============================================================ */
 
 const HALAMAN = {
   dashboard:  { judul: 'Dashboard',          sub: 'Ringkasan kondisi kos hari ini',           render: renderDashboard },
@@ -614,7 +520,6 @@ function navigasi(nama) {
   window.scrollTo({ top: 0 });
 }
 
-/** Render ulang daftar/tabel saja (agar fokus kotak pencarian tidak hilang) */
 const RENDER_ULANG = {
   kamar: function () { renderKamarList(); },
   penghuni: function () { renderPenghuniList(); },
@@ -623,9 +528,6 @@ const RENDER_ULANG = {
   riwayat: function () { renderRiwayatList(); }
 };
 
-/* ============================================================
-   8. HALAMAN DASHBOARD
-   ============================================================ */
 
 function renderDashboard() {
   const bulanIni = monthKeyOf(new Date());
@@ -641,14 +543,13 @@ function renderDashboard() {
   const bayarBulanIni = DB.payments.filter(function (p) { return p.bulan === bulanIni; });
   const pendapatan = bayarBulanIni.reduce(function (s, p) { return s + Number(p.dibayar); }, 0);
 
-  // Tagihan yang sudah terbit sampai bulan ini dan belum lunas
   const belumLunas = DB.payments.filter(function (p) {
     return p.bulan <= bulanIni && statusBayar(p) !== 'Lunas';
   });
   const terlambat = DB.payments.filter(function (p) { return statusBayar(p) === 'Terlambat'; });
   const tunggakan = belumLunas.reduce(function (s, p) { return s + sisaTagihan(p); }, 0);
 
-  // Akan jatuh tempo: belum lunas, jatuh tempo mulai hari ini, maksimal 30 hari ke depan
+
   const akanJatuhTempo = DB.payments.filter(function (p) {
     return statusBayar(p) !== 'Lunas' && p.jatuhTempo >= hariIni && selisihHari(hariIni, p.jatuhTempo) <= 30;
   }).sort(function (a, b) { return a.jatuhTempo < b.jatuhTempo ? -1 : 1; });
@@ -656,7 +557,7 @@ function renderDashboard() {
   const penghuniTerbaru = DB.tenants.filter(function (t) { return t.status === 'Aktif'; })
     .slice().sort(function (a, b) { return a.tglMasuk < b.tglMasuk ? 1 : -1; }).slice(0, 5);
 
-  /* ---- Notifikasi ---- */
+
   let notif = '';
   if (terlambat.length) {
     const contoh = terlambat[0];
@@ -675,7 +576,7 @@ function renderDashboard() {
       <div>Tidak ada pembayaran yang terlambat. Semua tagihan dalam kondisi terkendali.</div></div>`;
   }
 
-  /* ---- Grafik pendapatan 6 bulan ---- */
+
   const bulanGrafik = [];
   for (let i = 5; i >= 0; i--) bulanGrafik.push(addMonths(bulanIni, -i));
   const nilai = bulanGrafik.map(function (m) {
@@ -692,7 +593,7 @@ function renderDashboard() {
       </div>`;
   }).join('');
 
-  /* ---- Susun halaman ---- */
+  
   $('#content').innerHTML = `
     ${notif}
 
@@ -781,9 +682,6 @@ function renderDashboard() {
     </div>`;
 }
 
-/* ============================================================
-   9. HALAMAN DATA KAMAR
-   ============================================================ */
 
 function renderKamar() {
   $('#content').innerHTML = `
@@ -997,9 +895,6 @@ function hapusKamar(id) {
     });
 }
 
-/* ============================================================
-   10. HALAMAN DATA PENGHUNI
-   ============================================================ */
 
 function renderPenghuni() {
   $('#content').innerHTML = `
@@ -1072,7 +967,6 @@ function renderPenghuniList() {
     ${htmlPager('penghuni', semua.length, ui.penghuni.page)}`;
 }
 
-/** Daftar kamar yang bisa dipilih penghuni (kosong + kamar miliknya sendiri) */
 function opsiKamar(terpilih) {
   return DB.rooms.filter(function (r) {
     if (r.id === terpilih) return true;
@@ -1707,9 +1601,6 @@ function renderLaporanIsi() {
     </div>`;
 }
 
-/* ============================================================
-   13. HALAMAN RIWAYAT PENGHUNI
-   ============================================================ */
 
 function renderRiwayat() {
   $('#content').innerHTML = `
@@ -1763,9 +1654,6 @@ function renderRiwayatList() {
     </div>`;
 }
 
-/* ============================================================
-   14. HALAMAN PENGATURAN
-   ============================================================ */
 
 function renderPengaturan() {
   const s = DB.settings;
@@ -1896,9 +1784,6 @@ function resetDataDemo() {
   });
 }
 
-/* ============================================================
-   15. EVENT GLOBAL & INISIALISASI
-   ============================================================ */
 
 function bukaSidebar() {
   $('#sidebar').classList.add('is-open');
@@ -1909,7 +1794,7 @@ function tutupSidebar() {
   $('#backdrop').classList.remove('is-open');
 }
 
-/** Semua klik di area konten ditangani di satu tempat (event delegation) */
+
 function tanganiKlikKonten(e) {
   const tombol = e.target.closest('[data-action]');
   if (!tombol) return;
@@ -1944,7 +1829,7 @@ function tanganiKlikKonten(e) {
   }
 }
 
-/** Perubahan pada kotak pencarian / filter */
+
 function tanganiFilter(e) {
   const el = e.target.closest('[data-filter]');
   if (!el) return;
@@ -1960,10 +1845,8 @@ function tanganiFilter(e) {
 function init() {
   muatData();
 
-  // Login
   $('#loginForm').addEventListener('submit', prosesLogin);
 
-  // Navigasi sidebar
   $('#mainNav').addEventListener('click', function (e) {
     const item = e.target.closest('.navitem');
     if (item) navigasi(item.dataset.page);
@@ -1972,18 +1855,15 @@ function init() {
   $('#btnMenu').addEventListener('click', bukaSidebar);
   $('#backdrop').addEventListener('click', tutupSidebar);
 
-  // Interaksi di area konten
   const konten = $('#content');
   konten.addEventListener('click', tanganiKlikKonten);
   konten.addEventListener('input', tanganiFilter);
   konten.addEventListener('change', tanganiFilter);
 
-  // Tutup modal dengan tombol Escape
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && $('#modalOverlay')) tutupModal();
   });
 
-  // Langsung masuk bila sesi login masih aktif
   if (sedangLogin()) tampilkanAplikasi();
 }
 
