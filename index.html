@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SIMKOS — Sistem Informasi Manajemen Kos-kosan</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ============================================================
+     HALAMAN LOGIN
+     ============================================================ -->
+<div class="login" id="loginScreen">
+  <section class="login__brand">
+    <div class="login__mark">
+      <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V21h14V9.5" /><path d="M10 21v-6h4v6" />
+      </svg>
+      <span>SIMKOS</span>
+    </div>
+    <h2 class="login__headline">Kelola kos Anda dari satu halaman.</h2>
+    <p class="login__sub">Kamar, penghuni, tagihan bulanan, dan laporan tercatat rapi tanpa buku tulis.</p>
+    <ul class="login__points">
+      <li>Status kamar mengikuti data penghuni secara otomatis</li>
+      <li>Sisa tagihan dan keterlambatan dihitung sendiri</li>
+      <li>Laporan bulanan siap dicetak</li>
+    </ul>
+  </section>
+
+  <section class="login__panel">
+    <div class="login__box">
+      <h1>Masuk sebagai pengelola</h1>
+      <p class="muted">Gunakan akun demo di bawah untuk mencoba sistem.</p>
+
+      <form id="loginForm" novalidate>
+        <label class="field">
+          <span>Username</span>
+          <input type="text" id="loginUser" autocomplete="username" placeholder="admin" />
+          <small class="err" id="errUser"></small>
+        </label>
+
+        <label class="field">
+          <span>Password</span>
+          <input type="password" id="loginPass" autocomplete="current-password" placeholder="Masukkan password" />
+          <small class="err" id="errPass"></small>
+        </label>
+
+        <label class="check">
+          <input type="checkbox" id="loginRemember" checked />
+          <span>Tetap masuk di perangkat ini</span>
+        </label>
+
+        <button class="btn btn--primary btn--block" type="submit">Masuk</button>
+        <p class="login__hint">Akun demo — username <b>admin</b>, password <b>admin123</b></p>
+      </form>
+    </div>
+  </section>
+</div>
+
+<!-- ============================================================
+     APLIKASI (tampil setelah login)
+     ============================================================ -->
+<div class="app hidden" id="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar__brand">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V21h14V9.5" /><path d="M10 21v-6h4v6" />
+      </svg>
+      <div class="sidebar__brandtext">
+        <strong>SIMKOS</strong>
+        <small id="sidebarKosName">Kos</small>
+      </div>
+    </div>
+
+    <nav class="sidebar__nav" id="mainNav">
+      <button class="navitem is-active" data-page="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="8" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="11" width="7" height="10" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
+        <span>Dashboard</span>
+      </button>
+      <button class="navitem" data-page="kamar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v16"/><path d="M3 21h18"/><path d="M14 12h.01"/></svg>
+        <span>Data Kamar</span>
+      </button>
+      <button class="navitem" data-page="penghuni">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M16 11.2A3 3 0 0 0 16 5.3"/><path d="M18 20c0-2.6-1-4.3-2.6-5.2"/></svg>
+        <span>Data Penghuni</span>
+      </button>
+      <button class="navitem" data-page="pembayaran">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5.5" width="19" height="13" rx="2"/><path d="M2.5 10h19"/><path d="M6 14.5h4"/></svg>
+        <span>Pembayaran</span>
+      </button>
+      <button class="navitem" data-page="laporan">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h4"/></svg>
+        <span>Laporan</span>
+      </button>
+      <button class="navitem" data-page="riwayat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3.5 4.5V9H8"/><path d="M12 7.5V12l3 1.8"/></svg>
+        <span>Riwayat Penghuni</span>
+      </button>
+      <button class="navitem" data-page="pengaturan">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.6 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-2.89 1.2v.18a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.95-1.13l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.5 12.5H4.3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.2-2.9l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 2.87.27"/></svg>
+        <span>Pengaturan</span>
+      </button>
+    </nav>
+
+    <button class="navitem navitem--out" id="btnLogoutSide">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+      <span>Logout</span>
+    </button>
+  </aside>
+
+  <div class="backdrop" id="backdrop"></div>
+
+  <!-- KONTEN -->
+  <div class="shell">
+    <header class="topbar">
+      <button class="iconbtn only-mobile" id="btnMenu" aria-label="Buka menu">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+
+      <div class="topbar__title">
+        <h2 id="pageTitle">Dashboard</h2>
+        <p id="pageSub">Ringkasan kondisi kos hari ini</p>
+      </div>
+
+      <div class="topbar__right">
+        <span class="today" id="todayLabel"></span>
+        <div class="avatar" title="Pengelola"><span id="avatarInitial">A</span></div>
+      </div>
+    </header>
+
+    <main class="content" id="content"></main>
+  </div>
+</div>
+
+<!-- Tempat modal & toast -->
+<div id="modalRoot"></div>
+<div class="toasts" id="toastRoot"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
