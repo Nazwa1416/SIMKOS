@@ -1,3 +1,3 @@
 RPL SMT 7 RR - KOS
 
-FIGMA LINK : https://www.figma.com/design/bLD93lcf4aAWGGwjs1GyIw/Workout-Tracker?node-id=0-1&t=J1UMHtXI62J4fwxR-1
+LINK FIGMA : https://www.figma.com/design/AsxVntchbRRIyTGCU80fBz/rpl_ui?node-id=0-1&t=qNCtcI0yNyTTNZdc-0
